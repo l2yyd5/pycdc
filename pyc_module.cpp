@@ -197,6 +197,37 @@ bool PycModule::isSupportedVersion(int major, int minor)
     }
 }
 
+void PycModule::loadFromBuffer(const uint8_t* ptr, int length)
+{
+    PycBuffer in(ptr, length);
+    if (!in.isOpen()) {
+        fprintf(stderr, "Error loading pyc file.\n");
+        return;
+    }
+    setVersion(in.get32());
+    if (!isValid()) {
+        fputs("Bad MAGIC!\n", stderr);
+        return;
+    }
+
+    int flags = 0;
+    if (verCompare(3, 7) >= 0)
+        flags = in.get32();
+
+    if (flags & 0x1) {
+        // Optional checksum added in Python 3.7
+        in.get32();
+        in.get32();
+    } else {
+        in.get32(); // Timestamp -- who cares?
+
+        if (verCompare(3, 3) >= 0)
+            in.get32(); // Size parameter added in Python 3.3
+    }
+
+    m_code = LoadObject(&in, this).cast<PycCode>();
+}
+
 void PycModule::loadFromFile(const char* filename)
 {
     PycFile in(filename);

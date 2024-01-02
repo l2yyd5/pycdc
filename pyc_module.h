@@ -43,6 +43,7 @@ class PycModule {
 public:
     PycModule() : m_maj(-1), m_min(-1), m_unicode(false) { }
 
+    void loadFromBuffer(const uint8_t* ptr, int length);
     void loadFromFile(const char* filename);
     void loadFromMarshalledFile(const char *filename, int major, int minor);
     bool isValid() const { return (m_maj >= 0) && (m_min >= 0); }

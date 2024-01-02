@@ -63,7 +63,11 @@ add_library(pycxx STATIC
     bytes/python_3_12.cpp
 )
 
-add_executable(pycdas pycdas.cpp)
+set(CMAKE_CXX_FLAGS "-fexceptions ${CMAKE_CXX_FLAGS}")
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fexceptions -s STACK_OVERFLOW_CHECK=2 -s NO_DISABLE_EXCEPTION_CATCHING=1 -s ENVIRONMENT=web -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']")
+
+add_executable(pycdas pycdas.cpp ASTree.cpp ASTNode.cpp)
 target_link_libraries(pycdas pycxx)
 
 install(TARGETS pycdas

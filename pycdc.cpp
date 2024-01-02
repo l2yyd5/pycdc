@@ -1,13 +1,58 @@
+#include "ASTree.h"
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include "ASTree.h"
+#include <sstream>
+#include <vector>
+
+#include <emscripten.h>
 
 #ifdef WIN32
 #  define PATHSEP '\\'
 #else
 #  define PATHSEP '/'
 #endif
+
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+    const char* decompile(const char* filename, uint8_t* ptr, int length) {
+        PycModule mod;
+        std::ostringstream pyc_output;
+
+        try {
+            mod.loadFromBuffer(ptr, length);
+        } catch (const std::exception& ex) {
+            pyc_output << "Error loading file " << filename << ": " << ex.what() << "\n";
+            const char* result = strdup(pyc_output.str().c_str());
+            return result;
+        }
+
+        if (!mod.isValid()) {
+            pyc_output << "Could not load file " << filename << "\n";
+            const char* result = strdup(pyc_output.str().c_str());
+            return result;
+        }
+
+        const char* dispname = strrchr(filename, PATHSEP);
+        dispname = (dispname == nullptr) ? filename : dispname + 1;
+
+        pyc_output << "# Source Generated with Decompyle++\n";
+        pyc_output << "# File: " << dispname << " (Python " << mod.majorVer() << "." << mod.minorVer();
+        pyc_output << (mod.majorVer() < 3 && mod.isUnicode() ? " Unicode" : "") << ")\n\n";
+
+        try {
+            decompyle(mod.code(), &mod, pyc_output);
+        } catch (const std::exception& ex) {
+            pyc_output << "Error decompyling " << filename << ": " << ex.what() << "\n";
+            const char* result = strdup(pyc_output.str().c_str());
+            return result;
+        }
+
+        const char* result = strdup(pyc_output.str().c_str());
+        return result;
+    }
+}
 
 int main(int argc, char* argv[])
 {
